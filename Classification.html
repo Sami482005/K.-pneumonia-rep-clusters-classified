@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Replicon Cluster Classifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: 
+        linear-gradient(135deg, rgba(116, 235, 213, 0.8), rgba(172, 182, 229, 0.8)),
+        url('assets/plasmid.png') no-repeat;
+      animation: floatAround 10s infinite alternate ease-in-out;
+      background-size: cover;
+      background-attachment: fixed;
+      z-index: -1;
+      filter: blur(1px);
+    }
+
+    .container {
+      background-color: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      color: #4A00E0;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 12px 16px;
+      width: 100%;
+      max-width: 300px;
+      font-size: 16px;
+      border: 2px solid #4A00E0;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    input:focus {
+      border-color: #8E2DE2;
+      outline: none;
+      box-shadow: 0 0 10px #8E2DE2aa;
+    }
+
+    button {
+      background-color: #4A00E0;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #8E2DE2;
+    }
+
+    #result {
+      margin-top: 25px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .not-found {
+      color: #D8000C;
+      font-weight: bold;
+    }
+
+    .incomplete {
+      color: #FFA500;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="assets/bacterium.png" alt="Bacteria" style="width: 120px; margin-bottom: 20px;" />
+    <h1>Replicon Cluster Classifier</h1>
+    <input type="text" id="repCluster" maxlength="4" pattern="\d{4}" placeholder="Enter 4 digits (e.g. 2370)" oninput="enforceNumericInput(this)" />
+    <button onclick="classify()">Classify</button>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    const repClusterMap = {
+      "ColRNAI_rep_cluster_1857": "ColRNAI",
+      "rep_cluster_2335": "Col(pHAD28), Col440II, Col440I",
+      "ColRNAI_rep_cluster_1987": "Col(pHAD28), Col440II, Col440I",
+      "rep_cluster_1195": "ColKP3",
+      "rep_cluster_2370": "ColRNAI, Col(pHAD28)",
+      "rep_cluster_1778": "ColpEC648",
+      "rep_cluster_2358": "Col(pHAD28), Col440II",
+      "rep_cluster_2373": "Col(pHAD28), Col440I, Col440II",
+      "rep_cluster_2327": "Col(pHAD28)",
+      "rep_cluster_2401": "ColRNAI",
+      "rep_cluster_2350": "ColRNAI, Col(pHAD28), Col440I, Col440II",
+      "rep_cluster_2150": "Col156",
+      "rep_cluster_2374": "Col(pHAD28)",
+      "rep_cluster_1451": "pKPC-CAV1320",
+      "rep_cluster_827": "pXuzhou21",
+      "rep_cluster_2131": "Col156"
+    };
+
+    const incompleteRepClusters = {
+      "rep_cluster_1418": "repB(R1701)",
+      "rep_cluster_2127": "repA(pKOX)",
+      "rep_cluster_1367": "pKPC-CAV1193",
+      "rep_cluster_1798": "pKP1433",
+      "rep_cluster_2272": "IncFII(Yp)",
+      "rep_cluster_2183": "IncFII(Yp)",
+      "rep_cluster_2175": "IncP1",
+      "rep_cluster_1254": "IncU",
+      "rep_cluster_1756": "repA(p447)"
+    };
+
+    function enforceNumericInput(input) {
+      input.value = input.value.replace(/[^0-9]/g, '');
+    }
+
+    function classify() {
+      const inputVal = document.getElementById("repCluster").value.trim();
+      const result = document.getElementById("result");
+
+      if (inputVal.length !== 4 && inputVal.length !== 3) {
+        result.innerHTML = "⚠️ Please enter 4 or 3 digits.";
+        result.className = "not-found";
+        return;
+      }
+
+      const keysToCheck = [
+        `rep_cluster_${inputVal}`,
+        `ColRNAI_rep_cluster_${inputVal}`
+      ];
+
+      const foundKey = keysToCheck.find(key => key in repClusterMap);
+
+      if (foundKey) {
+        result.innerHTML = `✅ This cluster includes: <strong>${repClusterMap[foundKey]}</strong>`;
+        result.className = "";
+      } else if (incompleteRepClusters[`rep_cluster_${inputVal}`]) {
+        result.innerHTML = `⏳ The results for this rep_cluster are not yet complete, check in later to view.`;
+        result.className = "incomplete";
+      } else {
+        result.innerHTML = `❌ <span class="not-found">You are just so brand new, no one knows what's your class</span>`;
+        result.className = "not-found";
+      }
+    }
+  </script>
+</body>
+</html>
